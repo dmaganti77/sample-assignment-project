@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sales-consumer
+  namespace: sales
+  labels:
+    app: sales-consumer
+    version: "1.0"
+spec:
+  # replicas=0 at rest — KEDA ScaledObject controls actual replica count.
+  # Setting this to 0 here prevents Kubernetes from fighting KEDA on startup.
+  replicas: 0
+  selector:
+    matchLabels:
+      app: sales-consumer
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: sales-consumer
+    spec:
+      # IRSA: consumer role needs SQS receive/delete + DynamoDB PutItem
+      serviceAccountName: sales-consumer
+      terminationGracePeriodSeconds: 30
+
+      # Preferred zone spreading — matches API deployment policy (ADR-003)
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: sales-consumer
+
+      containers:
+        - name: sales-consumer
+          image: <ECR_ACCOUNT>.dkr.ecr.us-east-1.amazonaws.com/sales-consumer:latest
+
+          # Consumer has no HTTP server — use exec probe to confirm process is alive
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "kill -0 1"
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+
+          envFrom:
+            - configMapRef:
+                name: sales-tracker-config
+
+          env:
+            - name: DYNAMODB_TABLE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: sales-tracker-config
+                  key: DYNAMODB_TABLE_NAME
+
+          # Consumer is lighter than the API — processes messages sequentially
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+
+          # Security hardening — identical to API deployment
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities:
+              drop: ["ALL"]

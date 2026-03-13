@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sales-tracker
+  namespace: sales
+  labels:
+    app: sales-tracker
+    version: "1.0"
+spec:
+  replicas: 2                         # Minimum 2 — eliminates SPOF
+  selector:
+    matchLabels:
+      app: sales-tracker
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0               # Zero-downtime deployments
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: sales-tracker
+    spec:
+      serviceAccountName: sales-tracker  # IRSA — scoped IAM role for SQS access
+      terminationGracePeriodSeconds: 30
+
+      # Spread pods across AZs — eliminates AZ-level SPOF
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: sales-tracker
+
+      containers:
+        - name: sales-tracker
+          image: <ECR_ACCOUNT>.dkr.ecr.us-east-1.amazonaws.com/sales-tracker:latest
+          ports:
+            - containerPort: 8080
+              name: http
+
+          envFrom:
+            - configMapRef:
+                name: sales-tracker-config
+
+          # Resource limits — REQUIRED for HPA and cluster stability
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+
+          # Liveness: restart pod if it deadlocks
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # Readiness: remove from LB if SQS unreachable
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # Security hardening
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65534
+            capabilities:
+              drop: ["ALL"]

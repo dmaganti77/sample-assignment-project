@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sales-tracker
+  namespace: sales
+spec:
+  selector:
+    app: sales-tracker
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sales-tracker
+  namespace: sales
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /health/ready
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: $(ACM_CERT_ARN)
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /sales
+            pathType: Prefix
+            backend:
+              service:
+                name: sales-tracker
+                port:
+                  number: 80
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: sales-tracker
+                port:
+                  number: 80
+---
+# PodDisruptionBudget — ensures at least 1 pod stays up during node drain/upgrades
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sales-tracker-pdb
+  namespace: sales
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: sales-tracker
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sales-tracker-config
+  namespace: sales
+data:
+  AWS_REGION: "us-east-1"
+  PORT: "8080"
+  # SQS_QUEUE_URL and DYNAMODB_TABLE_NAME are injected at deploy time via Terraform output.
+  # Replace the placeholders below with actual values from `terraform output`.
+  SQS_QUEUE_URL: "https://sqs.us-east-1.amazonaws.com/<ACCOUNT_ID>/sales-ingestion"
+  DYNAMODB_TABLE_NAME: "sales"
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sales
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# ServiceAccount with IRSA annotation for SQS access
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sales-tracker
+  namespace: sales
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::<ACCOUNT_ID>:role/sales-tracker-sqs-role

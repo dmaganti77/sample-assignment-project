@@ -1,0 +1,47 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: sales-consumer-scaler
+  namespace: sales
+spec:
+  scaleTargetRef:
+    # Scale the consumer deployment, NOT the API pods.
+    # The API is internet-facing and must always maintain ≥2 replicas
+    # regardless of queue depth (ADR-005).
+    name: sales-consumer
+
+  # minReplicaCount=0 enables scale-to-zero during idle periods (ADR-005).
+  # KEDA will scale up from 0 as soon as messages appear in the queue.
+  minReplicaCount: 0
+  maxReplicaCount: 50
+
+  cooldownPeriod: 60       # Seconds before scaling down after queue drains
+  pollingInterval: 15      # Check queue depth every 15 seconds
+
+  triggers:
+    - type: aws-sqs-queue
+      authenticationRef:
+        name: keda-aws-credentials
+      metadata:
+        # queueURL is read from the ConfigMap via valuesFrom below.
+        # KEDA metadata does not perform shell variable substitution.
+        queueURL: ""
+        queueLength: "100"       # Target messages per consumer pod replica
+        awsRegion: "us-east-1"
+        identityOwner: operator  # KEDA operator uses its own IRSA role
+      # Pull the actual queue URL from the ConfigMap at runtime
+      valuesFrom:
+        - configMapKeyRef:
+            name: sales-tracker-config
+            key: SQS_QUEUE_URL
+            parameter: queueURL
+---
+# KEDA TriggerAuthentication — uses AWS Pod Identity / IRSA
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: keda-aws-credentials
+  namespace: sales
+spec:
+  podIdentity:
+    provider: aws             # Uses EKS Pod Identity or IRSA
