@@ -17,26 +17,26 @@ variables:
 - group: state-data
 
 stages:
-- stage: build_and_test
-  jobs:
-  - job: "show_subscription_and_show_current_dir"
-    steps:
-    - task: AzureCLI@2
-      inputs:
-        azureSubscription: 'tacowagon-dev'
-        addSpnToEnvironment: true # Mandatory to get the idToken variable
-        scriptType: 'bash'
-        scriptLocation: 'inlineScript'
-        inlineScript: |
-          # 1. Access the token directly in this script
-          echo "The federated token is: $idToken"
+# - stage: build_and_test
+#   jobs:
+#   - job: "show_subscription_and_show_current_dir"
+#     steps:
+#     - task: AzureCLI@2
+#       inputs:
+#         azureSubscription: 'tacowagon-dev'
+#         addSpnToEnvironment: true # Mandatory to get the idToken variable
+#         scriptType: 'bash'
+#         scriptLocation: 'inlineScript'
+#         inlineScript: |
+#           # 1. Access the token directly in this script
+#           echo "The federated token is: $idToken"
 
-          # 2. (Optional) Export it for tools like Terraform
-          export ARM_OIDC_TOKEN=$idToken
-          export ARM_USE_OIDC=true
+#           # 2. (Optional) Export it for tools like Terraform
+#           export ARM_OIDC_TOKEN=$idToken
+#           export ARM_USE_OIDC=true
 
-          # 3. (Optional) Save it as a pipeline variable for later steps in the same job
-          echo "##vso[task.setvariable variable=MY_OIDC_TOKEN]$idToken"
+#           # 3. (Optional) Save it as a pipeline variable for later steps in the same job
+#           echo "##vso[task.setvariable variable=MY_OIDC_TOKEN]$idToken"
   
 - stage: Validation
   jobs:
