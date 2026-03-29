@@ -9,7 +9,9 @@ trigger:
     - master
 
 pool:
-  vmImage: ubuntu-latest
+  name: Default
+  demands: 
+    - Agent.Name -equals Dheerajs-MacBook-Pro 
 
 variables:
 - group: state-data
