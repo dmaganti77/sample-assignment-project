@@ -37,8 +37,22 @@ stages:
 
           # 3. (Optional) Save it as a pipeline variable for later steps in the same job
           echo "##vso[task.setvariable variable=MY_OIDC_TOKEN]$idToken"
-    - script: |
-        az login --service-principal -u $(client_id) --tenant $(tenant_id) --federated-token $(idToken) --allow-no-subscriptions && az account list
-      displayName: 'show subscription'
-    - script: pwd && ls -ltra && env
-      displayName: 'show current dir'
+  
+- stage: Validation
+  jobs:
+  - job: Terraform_Validate
+    pool:
+      name: Default # Ensure your local Mac agent is in this pool
+      demands: 
+         - Agent.Name -equals Dheerajs-MacBook-Pro
+    steps:
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: $(terraform_version)
+
+    - bash: |
+        terraform fmt -check
+        terraform init -backend=false
+        terraform validate
+      workingDirectory: $(working_directory)
+      displayName: 'Terraform Format and Validate'
