@@ -2,18 +2,25 @@
 # Start with a minimal pipeline that you can customize to build and deploy your code.
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
-
 trigger:
-- main
+  batch: true
+  branches:
+    include:
+    - master
 
 pool:
   vmImage: ubuntu-latest
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+variables:
+- group: state-data
 
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+stages:
+- stage: build_and_test
+  jobs:
+  - job: "show_subscription_and_show_current_dir"
+    steps:
+    - script: |
+        az login --service-principal -u  $(ARM_CLIENT_ID) -p $(ARM_CLIENT_SECRET) --tenant $(ARM_TENANT_ID) && az account list
+      displayName: 'show subscription'
+    - script: pwd && ls -ltra && env
+      displayName: 'show current dir'
