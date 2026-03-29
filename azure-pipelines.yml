@@ -51,9 +51,8 @@ stages:
         terraformVersion: $(terraform_version)
 
     - bash: |
-        cd /Users/dheerajmaganti/Library/Mobile Documents/com~apple~CloudDocs/Documents/aks-three-tier/infra/
         terraform fmt -check
         terraform init -backend=false
         terraform validate
-      workingDirectory: $(working_directory)
+      workingDirectory: /Users/dheerajmaganti/Library/Mobile Documents/com~apple~CloudDocs/Documents/aks-three-tier/infra/
       displayName: 'Terraform Format and Validate'
