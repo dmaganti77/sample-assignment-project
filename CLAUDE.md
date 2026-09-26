@@ -98,6 +98,11 @@ sample-assignment-project/
 │   │   └── models/sale.go
 │   ├── Dockerfile
 │   └── go.mod
+├── web/                               # Next.js + TypeScript + Tailwind v4 + shadcn frontend
+│   ├── app/                           # App Router (separate from the Go app/ at repo root)
+│   ├── components/ui/                 # shadcn components (filter-token-bar.tsx + demo)
+│   ├── lib/utils.ts                   # shadcn cn() helper
+│   └── components.json                # shadcn config (aliases: @/components/ui, @/lib/utils)
 ├── k8s/
 │   ├── deployment.yaml
 │   ├── service.yaml
