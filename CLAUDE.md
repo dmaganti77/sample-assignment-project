@@ -20,6 +20,11 @@ mkdir -p ~/.config/claude-code/skills
 cp -r skills/software-architecture ~/.config/claude-code/skills/
 cp -r skills/aws-skills ~/.config/claude-code/skills/
 cp -r skills/subagent-driven-development ~/.config/claude-code/skills/
+
+# UI UX Pro Max (third-party, MIT — not vendored; fetch before copying)
+git clone --depth 1 https://github.com/nextlevelbuilder/ui-ux-pro-max-skill /tmp/uiux
+cp -r /tmp/uiux/.claude/skills/ui-ux-pro-max skills/
+cp -r skills/ui-ux-pro-max ~/.config/claude-code/skills/
 ```
 
 ### Step 2 — Start Claude Code in this directory
@@ -72,7 +77,8 @@ sample-assignment-project/
 ├── skills/
 │   ├── software-architecture/         # System design principles
 │   ├── aws-skills/                    # AWS EKS + Terraform patterns
-│   └── subagent-driven-development/   # Agent orchestration patterns
+│   ├── subagent-driven-development/   # Agent orchestration patterns
+│   └── ui-ux-pro-max/                 # UI/UX design intelligence (fetched, see Step 1)
 ├── terraform/
 │   ├── main.tf
 │   ├── variables.tf
