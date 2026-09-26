@@ -16,15 +16,15 @@
 
 ### Step 1 — Install skills globally
 ```bash
-mkdir -p ~/.config/claude-code/skills
-cp -r skills/software-architecture ~/.config/claude-code/skills/
-cp -r skills/aws-skills ~/.config/claude-code/skills/
-cp -r skills/subagent-driven-development ~/.config/claude-code/skills/
+mkdir -p ~/.claude/skills
+cp -r skills/software-architecture ~/.claude/skills/
+cp -r skills/aws-skills ~/.claude/skills/
+cp -r skills/subagent-driven-development ~/.claude/skills/
 
 # UI UX Pro Max (third-party, MIT — not vendored; fetch before copying)
 git clone --depth 1 https://github.com/nextlevelbuilder/ui-ux-pro-max-skill /tmp/uiux
 cp -r /tmp/uiux/.claude/skills/ui-ux-pro-max skills/
-cp -r skills/ui-ux-pro-max ~/.config/claude-code/skills/
+cp -r skills/ui-ux-pro-max ~/.claude/skills/
 ```
 
 ### Step 2 — Start Claude Code in this directory
